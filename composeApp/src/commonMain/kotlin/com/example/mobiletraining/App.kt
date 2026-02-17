@@ -32,10 +32,7 @@ fun App() {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Button(onClick = { showContent = !showContent }) {
-                Text("Click me!")
-            }
-            Button(onClick = { showContent = !showContent }) {
-                Text("Git flow added!")
+                Text("Git flow methodology!")
             }
             AnimatedVisibility(showContent) {
                 val greeting = remember { Greeting().greet() }
