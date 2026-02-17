@@ -34,6 +34,9 @@ fun App() {
             Button(onClick = { showContent = !showContent }) {
                 Text("Click me!")
             }
+            Button(onClick = { showContent = !showContent }) {
+                Text("Git flow added!")
+            }
             AnimatedVisibility(showContent) {
                 val greeting = remember { Greeting().greet() }
                 Column(
