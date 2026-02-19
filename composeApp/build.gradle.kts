@@ -75,5 +75,9 @@ android {
 
 dependencies {
     debugImplementation(libs.compose.uiTooling)
+    // For commonly used icons (core set)
+    implementation("androidx.compose.material:material-icons-core:1.7.8")
+    // For the full, extended set of icons (warning: increases APK size)
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
 }
 
