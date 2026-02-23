@@ -29,60 +29,62 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.text.LinkAnnotation
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextLinkStyles
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withLink
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
+
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.ui.NavDisplay
+import androidx.savedstate.serialization.SavedStateConfiguration
+import com.example.mobiletraining.ui.Display
+import com.example.mobiletraining.ui.DisplayBooking
+import com.example.mobiletraining.ui.DisplayData
+import com.example.mobiletraining.ui.DisplayFooter
+import com.example.mobiletraining.ui.DisplayImageSection
+import com.example.mobiletraining.ui.DisplaySpecs
+import com.example.mobiletraining.ui.DisplayText
+import com.example.mobiletraining.ui.OpenPopup
+import com.example.mobiletraining.viewmodels.DashboardViewModel
 
-import org.jetbrains.compose.resources.painterResource
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.polymorphic
 
-import mobiletraining.composeapp.generated.resources.Res
-import mobiletraining.composeapp.generated.resources.arrow_back
-import mobiletraining.composeapp.generated.resources.bath
-import mobiletraining.composeapp.generated.resources.bed
-import mobiletraining.composeapp.generated.resources.cabin
-import mobiletraining.composeapp.generated.resources.car
-import mobiletraining.composeapp.generated.resources.compose_multiplatform
-import mobiletraining.composeapp.generated.resources.home
-import mobiletraining.composeapp.generated.resources.loading_icon
-import mobiletraining.composeapp.generated.resources.previous
-import mobiletraining.composeapp.generated.resources.rating1
-import mobiletraining.composeapp.generated.resources.rating2
-import org.jetbrains.compose.resources.DrawableResource
+@Serializable
+sealed class Screen : NavKey {
+    @Serializable
+    data object Dashboard : Screen()
+    @Serializable
+    data object Booking : Screen()
+}
 
 @Composable
 fun App(
-    viewModel: DashboardViewModel = DashboardViewModel
-) {
-    val viewState by viewModel.state.collectAsStateWithLifecycle()
 
-    Column (
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-    ){
-        OpenPopup(viewState.booked ) {
-            viewModel.bookDestination(false)
-        }
-        DisplayImageSection(viewState.isImageLoading)
-        DisplayData(viewState.isDataLoading, rating = 4)
-        DisplaySpecs(viewState.isSpecsLoading)
-        DisplayText(viewState.isTextLoading)
-        DisplayFooter(viewState.booked, viewState.isFooterLoading) {
-            viewModel.bookDestination()
+) {
+
+    val config = SavedStateConfiguration {
+        serializersModule = SerializersModule {
+            polymorphic(NavKey::class) {
+                subclass(Screen.Dashboard::class, Screen.Dashboard.serializer())
+                subclass(Screen.Booking::class, Screen.Booking.serializer())
+            }
         }
     }
+
+    val backStack = rememberNavBackStack(config, Screen.Dashboard)
+
+    NavDisplay(
+        backStack = backStack,
+        entryProvider = entryProvider {
+            entry <Screen.Dashboard> {
+                Display(navBackStack = backStack)
+            }
+            entry <Screen.Booking> {
+                DisplayBooking(navBackStack = backStack)
+            }
+        }
+    )
 }
 
 
@@ -90,323 +92,4 @@ fun App(
 @Composable
 fun AppPreview() {
     App()
-}
-@Composable
-fun DisplayImageSection(
-    isImageLoading: Boolean
-) {
-    val imagePainter = if (isImageLoading) {
-        painterResource(Res.drawable.loading_icon) // Replace with your filled drawable
-    } else {
-        painterResource(Res.drawable.cabin) // Replace with your border drawable
-    }
-    // Back button, image y pill de 1/8
-    Box(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        // 1. Image
-        Image(
-            painter = imagePainter,
-            contentDescription = null,
-            contentScale = ContentScale.FillHeight,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(400.dp)
-        )
-        // 2. Floating Back button
-        FloatingActionButton(
-            onClick = {  },
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding( all = 16.dp )
-                .padding( top = 22.dp )
-                .size(48.dp)
-                .background(Color.Transparent),
-            shape = CircleShape
-        ) {
-            Image(
-                painter = painterResource(Res.drawable.previous),
-                contentDescription = null
-            )
-        }
-        // 3. Floating pill
-        Text(
-            text = "1 / 8",
-            color = Color.White,
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(16.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .background(Color.Black.copy(alpha = 0.6f))
-                .padding(horizontal = 12.dp, vertical = 6.dp)
-        )
-    }
-}
-
-@Composable
-fun DisplayData(
-    isDataLoading: Boolean, rating: Int
-) {
-    var opacity: Float = 1f
-    var titleText: String
-    var addressText: String
-    var ratingPainter: Painter
-
-    if(isDataLoading){
-        titleText = "Loading.."
-        addressText = "Fetching address.."
-        ratingPainter = painterResource(Res.drawable.rating1)
-    } else{
-        titleText = "Mountain retreat"
-        addressText = "Snowy Peaks, NSW, Australia"
-        opacity = 0.5f
-        ratingPainter = painterResource(Res.drawable.rating2)
-    }
-
-    Column(
-        modifier = Modifier
-            .wrapContentSize()
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-        ) {
-        Text(
-            text = titleText,
-            modifier = Modifier
-                .padding(start = 8.dp, top = 8.dp),
-            fontFamily = FontFamily.Serif,
-            fontWeight = FontWeight.Bold,
-            fontSize = 24.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-        Text(
-            text = addressText,
-            modifier = Modifier
-                .padding( start = 8.dp, top = 4.dp),
-            color = Color.Gray,
-            fontSize = 12.sp
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.Start,
-            verticalAlignment = Alignment.CenterVertically
-            ) {
-            repeat(rating) {    // rating es un int de 0 a 5
-                Image(
-                    painter = ratingPainter,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(30.dp)
-                        .padding(2.dp)
-                )
-            }
-            if (rating < 5){
-                repeat(5 - rating) {    // se repite el restante de veces para llegar a 5
-                    Image(
-                        painter = ratingPainter,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(30.dp)
-                            .padding(2.dp)
-                            .alpha(opacity)
-                    )
-                }
-            }
-            Text(
-                text = "5.0",
-                modifier = Modifier
-                    .padding(8.dp),
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp
-            )
-            Text(
-                text = "(23 reviews)",
-                modifier = Modifier
-                    .padding(8.dp),
-                color = Color.Blue,
-                textDecoration = TextDecoration.Underline,
-                fontSize = 16.sp
-            )
-        }
-    }
-}
-
-enum class NavIcon(
-    val label: String,
-    val icon: DrawableResource,
-) {
-    HOME("House", Res.drawable.home),
-    BED("2 beds", Res.drawable.bed),
-    BATH("1 bath", Res.drawable.bath),
-    GARAGE("1 garage", Res.drawable.car),
-}
-
-@Preview
-@Composable
-fun DisplaySpecs(
-    isSpecsLoading: Boolean = true
-) {
-    var icon: Painter
-
-    Row (
-        modifier = Modifier
-            .background(Color.White)
-            .fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        NavIcon.entries.forEach {
-            if (isSpecsLoading){
-                icon = painterResource(Res.drawable.loading_icon)
-            } else {
-                icon = painterResource(it.icon)
-            }
-            Column (
-                modifier = Modifier
-                    .padding(12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Image(
-                    painter = icon,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .padding(2.dp),
-                    contentScale = ContentScale.Crop
-                )
-                Text(
-                    text = it.label,
-                    modifier = Modifier,
-                    fontSize = 10.sp,
-                    color = Color.Gray
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun DisplayText(
-    isTextLoading: Boolean
-) {
-    val scrollState = rememberScrollState()
-
-    val longText = if(isTextLoading) {
-        "Loading description..."
-    } else {
-        "Lorem ipsum dolor sit amet, consectetur " +
-        "adipiscing elit, sed do eiusmod tempor incididunt" +
-        " ut labore et dolore magna aliqua. Ut enim ad " +
-        "minim veniam, quis nostrud exercitation ullamco" +
-        " laboris nisi ut aliquip ex ea commodo consequat." +
-        " Duis aute irure dolor in reprehenderit in voluptate velit" +
-        " esse cillum dolore eu fugiat nulla pariatur. Excepteur sint" +
-        " occaecat cupidatat non proident, sunt in culpa qui officia" +
-        " deserunt mollit anim id est laborum.\n" +
-        "Lorem ipsum dolor sit amet, consectetur" +
-        " adipiscing elit, sed do eiusmod tempor incididunt" +
-        " ut labore et dolore magna aliqua. Ut enim ad " +
-        "minim veniam, quis nostrud exercitation ullamco" +
-        " laboris nisi ut aliquip ex ea commodo consequat." +
-        " Duis aute irure dolor in reprehenderit in voluptate velit" +
-        " esse cillum dolore eu fugiat nulla pariatur. Excepteur sint" +
-        " occaecat cupidatat non proident, sunt in culpa qui officia" +
-        " deserunt mollit anim id est laborum."
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(200.dp)
-            .background(Color.White)
-            .verticalScroll(scrollState)
-            .padding(16.dp)
-
-    ) {
-        Text(
-            text = longText,
-            modifier = Modifier
-                .padding(8.dp),
-            fontFamily = FontFamily.SansSerif
-        )
-    }
-}
-
-@Composable
-fun DisplayFooter(
-    booked: Boolean, isFooterLoading: Boolean, onBookedClick: () -> Unit
-) {
-    val buttonColor = if(isFooterLoading){
-        Color.LightGray
-    } else {
-        Color.Blue
-    }
-    Row(
-        modifier = Modifier
-            .background(Color.White)
-            .padding(16.dp)
-            .fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Button(
-            colors = ButtonDefaults.buttonColors(
-                containerColor = buttonColor,
-                contentColor = Color.White
-            ),
-            modifier = Modifier
-                .padding(end = 80.dp),
-            onClick = onBookedClick
-        ) {
-            Text(
-                text = "Book now",
-                modifier = Modifier
-                    .clip(shape = RoundedCornerShape(2.dp)),
-                fontFamily = FontFamily.SansSerif,
-            )
-        }
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "$299.00",
-                modifier = Modifier
-                    .padding(start = 8.dp),
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                fontFamily = FontFamily.SansSerif
-            )
-            Text(
-                text = "/ night",
-                modifier = Modifier
-                    .padding( start = 8.dp ),
-                color = Color.Gray,
-                fontSize = 10.sp,
-                fontFamily = FontFamily.SansSerif
-            )
-        }
-    }
-}
-
-@Composable
-fun OpenPopup(showPopup: Boolean, onDismiss: () -> Unit ) {
-    if(showPopup) {
-        Popup(
-            onDismissRequest = onDismiss,
-            properties = PopupProperties(focusable = true)
-        ) {
-            Box(
-                modifier = Modifier
-                    .padding(20.dp)
-            ) {
-                Text(
-                    text = "Booking completed successfully!",
-                    modifier = Modifier
-                        .padding(16.dp)
-                )
-            }
-        }
-    }
 }
