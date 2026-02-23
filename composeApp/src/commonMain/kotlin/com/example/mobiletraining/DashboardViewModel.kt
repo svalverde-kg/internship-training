@@ -24,10 +24,13 @@ object DashboardViewModel : ViewModel() {
                 isDataLoading = false,
                 isSpecsLoading = false
             )
-            delay(3000)
+            delay(1000)
+            _state.value = _state.value.copy(
+                isFooterLoading = false
+            )
+            delay(2000)
             _state.value = _state.value.copy(
                 isImageLoading = false,
-                isFooterLoading = false
             )
         }
     }

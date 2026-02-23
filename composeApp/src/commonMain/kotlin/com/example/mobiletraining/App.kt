@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.tooling.preview.Preview
@@ -34,7 +35,9 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.sp
@@ -45,10 +48,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.painterResource
 
 import mobiletraining.composeapp.generated.resources.Res
+import mobiletraining.composeapp.generated.resources.arrow_back
+import mobiletraining.composeapp.generated.resources.bath
+import mobiletraining.composeapp.generated.resources.bed
+import mobiletraining.composeapp.generated.resources.cabin
+import mobiletraining.composeapp.generated.resources.car
 import mobiletraining.composeapp.generated.resources.compose_multiplatform
+import mobiletraining.composeapp.generated.resources.home
 import mobiletraining.composeapp.generated.resources.loading_icon
+import mobiletraining.composeapp.generated.resources.previous
 import mobiletraining.composeapp.generated.resources.rating1
 import mobiletraining.composeapp.generated.resources.rating2
+import org.jetbrains.compose.resources.DrawableResource
 
 @Composable
 fun App(
@@ -65,7 +76,7 @@ fun App(
             viewModel.bookDestination(false)
         }
         DisplayImageSection(viewState.isImageLoading)
-        DisplayData(viewState.isDataLoading)
+        DisplayData(viewState.isDataLoading, rating = 4)
         DisplaySpecs(viewState.isSpecsLoading)
         DisplayText(viewState.isTextLoading)
         DisplayFooter(viewState.booked, viewState.isFooterLoading) {
@@ -87,7 +98,7 @@ fun DisplayImageSection(
     val imagePainter = if (isImageLoading) {
         painterResource(Res.drawable.loading_icon) // Replace with your filled drawable
     } else {
-        painterResource(Res.drawable.compose_multiplatform) // Replace with your border drawable
+        painterResource(Res.drawable.cabin) // Replace with your border drawable
     }
     // Back button, image y pill de 1/8
     Box(
@@ -97,7 +108,7 @@ fun DisplayImageSection(
         Image(
             painter = imagePainter,
             contentDescription = null,
-            contentScale = ContentScale.Crop,
+            contentScale = ContentScale.FillHeight,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(400.dp)
@@ -107,12 +118,14 @@ fun DisplayImageSection(
             onClick = {  },
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(16.dp)
-                .size(56.dp),
+                .padding( all = 16.dp )
+                .padding( top = 22.dp )
+                .size(48.dp)
+                .background(Color.Transparent),
             shape = CircleShape
         ) {
             Image(
-                painter = painterResource(Res.drawable.compose_multiplatform),
+                painter = painterResource(Res.drawable.previous),
                 contentDescription = null
             )
         }
@@ -132,8 +145,9 @@ fun DisplayImageSection(
 
 @Composable
 fun DisplayData(
-    isDataLoading: Boolean
+    isDataLoading: Boolean, rating: Int
 ) {
+    var opacity: Float = 1f
     var titleText: String
     var addressText: String
     var ratingPainter: Painter
@@ -143,8 +157,9 @@ fun DisplayData(
         addressText = "Fetching address.."
         ratingPainter = painterResource(Res.drawable.rating1)
     } else{
-        titleText = "Mountain retreatfjadsfksakldfaslkfjksladjflksajdfklasjdfklasjdfklasdjfkladsjfjksadbjkbfaskjfbsankdbfbbabfbasdkjfbsakdfbasmnfbdn,asmnbdfn,masnbdfn,masnbdfn,masndbf,masdnbf,madsbnf,masnbf"
+        titleText = "Mountain retreat"
         addressText = "Snowy Peaks, NSW, Australia"
+        opacity = 0.5f
         ratingPainter = painterResource(Res.drawable.rating2)
     }
 
@@ -178,7 +193,7 @@ fun DisplayData(
             horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically
             ) {
-            repeat(5) {
+            repeat(rating) {    // rating es un int de 0 a 5
                 Image(
                     painter = ratingPainter,
                     contentDescription = null,
@@ -186,6 +201,18 @@ fun DisplayData(
                         .size(30.dp)
                         .padding(2.dp)
                 )
+            }
+            if (rating < 5){
+                repeat(5 - rating) {    // se repite el restante de veces para llegar a 5
+                    Image(
+                        painter = ratingPainter,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(30.dp)
+                            .padding(2.dp)
+                            .alpha(opacity)
+                    )
+                }
             }
             Text(
                 text = "5.0",
@@ -195,43 +222,53 @@ fun DisplayData(
                 fontSize = 20.sp
             )
             Text(
-                buildAnnotatedString {
-                    val link =
-                        LinkAnnotation.Url(
-                             "https://www.konrad.com/careers/san-jose",
-                            TextLinkStyles(SpanStyle(color = Color.Blue))
-                        ) { }
-                    withLink(link) { append("(23 reviews)") }
-                }
+                text = "(23 reviews)",
+                modifier = Modifier
+                    .padding(8.dp),
+                color = Color.Blue,
+                textDecoration = TextDecoration.Underline,
+                fontSize = 16.sp
             )
         }
     }
 }
 
+enum class NavIcon(
+    val label: String,
+    val icon: DrawableResource,
+) {
+    HOME("House", Res.drawable.home),
+    BED("2 beds", Res.drawable.bed),
+    BATH("1 bath", Res.drawable.bath),
+    GARAGE("1 garage", Res.drawable.car),
+}
+
+@Preview
 @Composable
 fun DisplaySpecs(
-    isSpecsLoading: Boolean
+    isSpecsLoading: Boolean = true
 ) {
-    val imagePainter = if (isSpecsLoading) {
-        painterResource(Res.drawable.loading_icon)
-    } else {
-        painterResource(Res.drawable.compose_multiplatform)
-    }
-    val list = listOf("House", "2 beds", "1 bath", "1 garage")
+    var icon: Painter
+
     Row (
         modifier = Modifier
             .background(Color.White)
             .fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        list.forEach {
+        NavIcon.entries.forEach {
+            if (isSpecsLoading){
+                icon = painterResource(Res.drawable.loading_icon)
+            } else {
+                icon = painterResource(it.icon)
+            }
             Column (
                 modifier = Modifier
                     .padding(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Image(
-                    painter = imagePainter,
+                    painter = icon,
                     contentDescription = null,
                     modifier = Modifier
                         .size(40.dp)
@@ -239,7 +276,7 @@ fun DisplaySpecs(
                     contentScale = ContentScale.Crop
                 )
                 Text(
-                    text = it,
+                    text = it.label,
                     modifier = Modifier,
                     fontSize = 10.sp,
                     color = Color.Gray
@@ -303,7 +340,7 @@ fun DisplayFooter(
     val buttonColor = if(isFooterLoading){
         Color.LightGray
     } else {
-        Color.Magenta
+        Color.Blue
     }
     Row(
         modifier = Modifier
@@ -315,8 +352,8 @@ fun DisplayFooter(
     ) {
         Button(
             colors = ButtonDefaults.buttonColors(
-                containerColor = buttonColor, // Use the conditional color
-                contentColor = Color.White // Text/icon color
+                containerColor = buttonColor,
+                contentColor = Color.White
             ),
             modifier = Modifier
                 .padding(end = 80.dp),
